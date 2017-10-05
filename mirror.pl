@@ -7,6 +7,32 @@ use boolean;
 use Log::Any qw($log);
 use Log::Any::Adapter ('Stdout');
 
+# {{{ statusLid
+sub statusLid() {
+    my $libStatusFile="/proc/acpi/button/lid/LID/state";
+    open(my $fd, '<:encoding(UTF-8)', $libStatusFile) or die "Could not open file '$libStatusFile' $!";
+    while (my $row = <$fd>) {
+        chomp $row;
+        if ($row =~ /open/) { return true;
+        } else { return false; }
+    }
+}
+#my $status = statusLid();
+#print $status;
+# }}}
+
+sub createEventHandler() {
+    my $filePath = "/etc/acpi/events/thinkpad-lidbutton"
+}
+
+# {{{ INFO
+#apt-get install acpid acpi-support cpufrequtils
+#------------- acpi example
+#corealugly@corebook $ acpi_listen
+#button/lid LID open
+#button/lid LID close
+# }}}
+
 # {{{ getXrandrStruct
 sub getXrandrStruct() {
     my @output = `xrandr`;
