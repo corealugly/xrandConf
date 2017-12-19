@@ -2,27 +2,35 @@
 use strict;
 use warnings;
 use utf8;
+use Getopt::ArgParse;
 use Data::Dumper;
 use boolean;
+use Cwd 'abs_path';
 use Log::Any qw($log);
 use Log::Any::Adapter ('Stdout');
 
-# {{{ statusLid
-sub statusLid() {
-    my $libStatusFile="/proc/acpi/button/lid/LID/state";
-    open(my $fd, '<:encoding(UTF-8)', $libStatusFile) or die "Could not open file '$libStatusFile' $!";
-    while (my $row = <$fd>) {
-        chomp $row;
-        if ($row =~ /open/) { return true;
-        } else { return false; }
-    }
-}
-#my $status = statusLid();
-#print $status;
-# }}}
+my $ap = Getopt::ArgParse->new_parser(
+    prog        => 'xrandr_event',
+    description => 'control xrandr with power even and udev event'
+);
 
-sub createEventHandler() {
-    my $filePath = "/etc/acpi/events/thinkpad-lidbutton"
+$ap->add_args(
+    [ '--lidstatus', required => 0, type => 'Bool' ],
+    [ '--lidlock', required => 0, type => 'Bool' ],
+    [ '--createEventHandler', required => 0, type => 'Bool' ],
+    [ '--createUdevHandler', required => 0, type => 'Bool' ],
+    [ '--xrandrMirror', required => 0, type => 'Scalar' ],
+    [ '--sameResolution', required => 0, type => 'Bool' ],
+#    [ '--deltime',  '-DT', required => 0, type => 'Scalar' ],
+);
+
+my $parser;
+
+eval { $parser = $ap->parse_args(); };
+if ($@) {
+    print ($@);
+    system( "perl " . abs_path($0) . " --help" );
+    exit 0;
 }
 
 # {{{ INFO
@@ -31,9 +39,52 @@ sub createEventHandler() {
 #corealugly@corebook $ acpi_listen
 #button/lid LID open
 #button/lid LID close
-# }}}
 
-# {{{ getXrandrStruct
+# }}}
+# {{{  createEventHandler ($scriptARGS)  --> no file validation exist --> control RUN EVENT
+sub createEventHandler(;$) {
+    my($scriptARGS) = @_;
+    my $fileName = "thinkpad-lidbutton";
+    my $filePath = "/etc/acpi/events/";
+    if ( -d $filePath) {
+        open(my $fd, ">$filePath$fileName") or die "Could not open file $fileName $!";
+        print $fd "#vim $filePath$fileName" . "\n";
+        print $fd "event=button[ /]lid" . "\n";
+        if (defined $scriptARGS) {
+            print $fd "action=" . abs_path($0) . " $scriptARGS " ."\n";
+            #print $fd "action=$scriptARGS" . "\n";
+        } else { 
+            print $fd "action=" . abs_path($0) . "\n";
+        }
+    }
+}
+
+# }}}
+# {{{  createUdevHandler  ($scriptARGS)  --> no file validation exist --> control RUN EVENT
+sub createUdevHandler(;$) {
+    my($scriptARGS) = @_;
+    my $fileName = "99-change-monitor.rules";
+    my $filePath = "/etc/udev/rules.d/";
+    my @row;
+    if ( -d $filePath) {
+        open(my $fd, ">$filePath$fileName") or die "Could not open file $fileName $!";
+        push @row, "ACTION==\"change\"";
+        push @row, "SUBSYSTEM==\"drm\"";
+        push @row, "ENV{DISPLAY}=\":0\"";
+        push @row, "ENV{XAUTHORITY}=\"/home/corealugly/.Xauthority\"";
+        push @row, "RUN+=\"/home/corealugly/.config/awesome/scripts/tmp/mirror.pl\"";
+        print $fd join(", ", @row);
+        if (defined $scriptARGS) {
+            print $fd "$scriptARGS" . "\n";
+        } else { 
+            print $fd "action=" . abs_path($0) . "\n";
+        }
+    }
+}
+
+#createUdevHandler();
+# }}}
+# {{{ getXrandrStruct    ()
 sub getXrandrStruct() {
     my @output = `xrandr`;
     #my(%videoPort,@resolutionCase);
@@ -59,6 +110,7 @@ sub getXrandrStruct() {
     return \%videoPort;
 }
 
+# {{{ EXAMPLE
 #$VAR1 = {
 #          'eDP1' => [
 #                      {
@@ -77,10 +129,9 @@ sub getXrandrStruct() {
 #                                  '59.88'
 #                                ]
 #                      },
-
 # }}}
-
-# {{{ getPixelCount 
+# }}}
+# {{{ getPixelCount      ($resolution) 
 sub getPixelCount($) {
     my($resolution) = @_;
     return 0 if ( ! defined $resolution );
@@ -88,8 +139,7 @@ sub getPixelCount($) {
     return $splResolution[0] + $splResolution[0];
     }
 # }}}
-
-# {{{ getPortResorution
+# {{{ getPortResorution  ($videoPort,$resolution)
 sub getPortResorution($;$) {
     my($videoPort,$resolution) = @_;
     my $max = undef;
@@ -110,8 +160,7 @@ sub getPortResorution($;$) {
     }
 }
 # }}}
-
-# {{{ xrandrMirror 
+# {{{ xrandrMirror       ($defaultDisplay, $sameResolution)
 sub xrandrMirror($;$) {
     my($defaultDisplay, $sameResolution) = @_;
     my(@cmd);
@@ -140,20 +189,59 @@ sub xrandrMirror($;$) {
    return \@cmd;
 }
 # }}}
+# {{{ statusLid          () 
+sub statusLid() {
+    my $libStatusFile="/proc/acpi/button/lid/LID/state";
+    open(my $fd, '<:encoding(UTF-8)', $libStatusFile) or die "Could not open file '$libStatusFile' $!";
+    while (my $row = <$fd>) {
+        chomp $row;
+        if ($row =~ /open/) { return true;
+        } else { return false; }
+    }
+}
+#my $status = statusLid();
+#$log->info("statusLid --> $status");
+# }}}
+# {{{ lockLid            ($triger) open --> TRUE    close --> FALSE
+sub lockLid($) {
+    my($triger) = @_;
+    if ($triger) {
+        system("xrandr", "--output", "eDP1", "--auto");
+    } else { 
+        system("xrandr", "--output", "eDP1", "--off");
+    }
+}
+# }}}
 
-sub locklid() {
-    system("xrandr", "--output", "eDP1", "--off");
+if ( $parser->lidstatus ) {
+    my $status = statusLid();
+    if ($status) {
+        print "Open" . "\n";
+    } else { print "Close" . "\n"; }
+    #exit 1;
 }
 
-sub unlocklid() {
-    system("xrandr", "--output", "eDP1", "--auto");
+if ( $parser->lidlock ) { 
+    if (statusLid()) {
+        lockLid(true);
+    }
+    if (! statusLid()) {
+        lockLid(false);
+    }
 }
+
+if ( $parser->createEventHandler ) {
+    createEventHandler();
+}
+
+#system("xrandr", "--output", "HDMI1", "--off")
 
 #xrandr --output eDP1 --auto --output DP3-1 --mode 1920x1080 --same-as eDP1
 #xrandr --output eDP1 --auto --output DP3-1 --mode 1920x1080+0+0 --same-as eDP1
 #xrandr --output eDP1 --auto --output DP2-8 --mode 1920x1080 --same-as eDP1
 #xrandr --output eDP1 --auto --output DP2 --mode 1920x1080 --same-as eDP1
 
+#my $cmd = xrandrMirror('eDP1', false);
 my $cmd = xrandrMirror('eDP1', true);
 system(join(" ",@$cmd));
 $log->info(join(" ",@$cmd));
