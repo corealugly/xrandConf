@@ -1,0 +1,7 @@
+##work with pulse audio
+###output all profiles
+	pacmd list-cards | perl -ne 'print if /[ \t]+output/' | awk '{print $1}' | sed 's/:$//g'
+###output all profiles v2
+	pactl list cards | grep -i "available: yes" | grep -i "sources: 0" | grep -iv off
+###get current profile 
+	pacmd list-cards | grep -i "active profile" | awk '{print $3}' | sed 's/[<>]//g'
