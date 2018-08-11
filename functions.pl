@@ -116,6 +116,20 @@ sub createEventHandler(;$) {
     }
 }
 
+sub prompt ($) {
+  my ($query) = @_; # take a prompt string as argument
+  local $| = 1; # activate autoflush to immediately show the prompt
+  print $query;
+  chomp(my $answer = <STDIN>);
+  return $answer;
+}
+
+sub prompt_yn ($) {
+  my ($query) = @_;
+  my $answer = prompt("$query (Y/N): ");
+  return lc($answer) eq 'y';
+}
+
 #createUdevHandler  ($scriptARGS)  --> no file validation exist --> control RUN EVENT
 sub createUdevHandler(;$) {
     my($scriptARGS) = @_;
@@ -123,17 +137,21 @@ sub createUdevHandler(;$) {
     my $filePath = "/etc/udev/rules.d";
     my @row;
     if ( -d $filePath) {
-        open(my $fd, ">$filePath/$fileName") or die "Could not open file $fileName $!";
-        push @row, "ACTION==\"change\"";
-        push @row, "SUBSYSTEM==\"drm\"";
-        push @row, "ENV{DISPLAY}=\":0\"";
-        push @row, "ENV{XAUTHORITY}=\"/home/corealugly/.Xauthority\"";
-        push @row, "RUN+=\"/home/corealugly/dotfiles/scripts/mirror.pl\"";
-        print $fd join(", ", @row);
-        if (defined $scriptARGS) {
-            print $fd "$scriptARGS" . "\n";
-        } else { 
-            print $fd "action=" . abs_path($0) . "\n";
+        if ( -e "$filePath/$fileName" ) { 
+            if ( prompt_yn("file $fileName is exist, rewrite?") ) { 
+                open(my $fd, ">$filePath/$fileName") or die "Could not open file $fileName $!";
+                push @row, "ACTION==\"change\"";
+                push @row, "SUBSYSTEM==\"drm\"";
+                push @row, "ENV{DISPLAY}=\":0\"";
+                # push @row, "ENV{XAUTHORITY}=\"/home/corealugly/.Xauthority\"";
+                # push @row, "RUN+=\"/home/corealugly/dotfiles/scripts/mirror.pl\"";
+                if (defined $scriptARGS) {
+                    push @row, "RUN+=\"$scriptARGS\"";
+                } else { 
+                    push @row, "RUN+=\"" . abs_path($0) . "\"";
+                }
+                print $fd join(", ", @row);
+            }
         }
     }
 }

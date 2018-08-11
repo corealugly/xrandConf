@@ -52,16 +52,12 @@ if ( $lidstatus ) {
     if ($status) {
         print "Open" . "\n";
     } else { print "Close" . "\n"; }
-    #exit 1;
 }
 
 if ( $lidlock ) { 
-    if (statusLid()) {
-        lockLid(true);
-    }
-    if (! statusLid()) {
-        lockLid(false);
-    }
+    if ( statusLid() )   { lockLid(true);  } 
+    else { lockLid(false); }
+    # if ( ! statusLid() ) { lockLid(false); }
 }
 
 if ( $createEventHandler ) {
@@ -84,5 +80,5 @@ if ( $createUdevHandler ) {
 #xrandr --output DP-3-2 --mode 1920x1080 --primary --left-of DP-3-1 --mode 1920x1080  --output eDP-1 --off
 
 my $cmd = xrandrMirror('eDP-1', true);
-# system(join(" ",@$cmd));
+system(join(" ",@$cmd));
 $log->info(join(" ",@$cmd));
