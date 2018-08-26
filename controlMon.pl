@@ -5,11 +5,13 @@ use utf8;
 use Data::Dumper;
 use boolean;
 use Cwd 'abs_path';
+use File::Basename;
+use Getopt::Long qw(GetOptions);
 use Log::Any qw($log);
 use Log::Any::Adapter ('Stdout');
 
-use Getopt::Long qw(GetOptions);
-require './functions.pl'; 
+# require  "./" . dirname(__FILE__) . "/functions.pm";
+require  (dirname(__FILE__) . "/functions.pl");
 
 sub HelpMessage() {
     print "Usage: $0 
@@ -47,6 +49,10 @@ GetOptions(
 
 # }}}
 
+# my $test = getUserDisplayList();
+# print Dumper $test;
+# exit 1;
+
 if ( $lidstatus ) {
     my $status = statusLid();
     if ($status) {
@@ -78,6 +84,15 @@ if ( $createUdevHandler ) {
 #system("xrandr --output eDP-1 --off --output DP-3-1 --mode 1920x1080 --right-of DP-3-2 --mode 1920x1080");
 #xrandr --output eDP-1 --off && xrandr --output DP-3-1 --mode 1920x1080 --right-of DP-3-2 --mode 1920x1080
 #xrandr --output DP-3-2 --mode 1920x1080 --primary --left-of DP-3-1 --mode 1920x1080  --output eDP-1 --off
+#xrandr --output eDP-1 --off --output HDMI-3 --off --output HDMI-2 --off --output HDMI-1 --off --output DP-3-1 --mode 1920x1080 --pos 1920x0 --rotate normal --output DP-3-3 --off --output DP-3-2 --mode 1920x1080 --pos 0x0 --rotate normal --output DP-3 --off --output DP-2 --off --output DP-1 --off
+# getEdidStruct();
+#getXrandrStructV2();
+
+#exit 1 ;
+my $runningXserverList = getUserDisplayList();
+#print Dumper $runningXserverList;
+sendStatus($runningXserverList);
+exit 1;
 
 my $cmd = xrandrMirror('eDP-1', true);
 system(join(" ",@$cmd));
