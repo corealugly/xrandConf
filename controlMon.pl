@@ -94,6 +94,7 @@ my $runningXserverList = getUserDisplayList();
 sendStatus($runningXserverList);
 # exit 1;
 
+
 my $cmd = xrandrMirror('eDP-1', true);
 system(join(" ",@$cmd));
 $log->info(join(" ",@$cmd));
