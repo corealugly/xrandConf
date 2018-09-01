@@ -199,8 +199,11 @@ sub getXrandrStruct() {
 #createEventHandler ($scriptARGS)  --> no file validation exist --> control RUN EVENT
 sub createEventHandler(;$) {
     my($scriptARGS) = @_;
+    
+    # Path and name udev files
     my $fileName = "thinkpad-lidbutton";
     my $filePath = "/etc/acpi/events/";
+
     if ( -d $filePath) {
         open(my $fd, ">$filePath$fileName") or die "Could not open file $fileName $!";
         print $fd "#vim $filePath$fileName" . "\n";
@@ -231,8 +234,11 @@ sub prompt_yn ($) {
 #createUdevHandler  ($scriptARGS)  --> no file validation exist --> control RUN EVENT
 sub createUdevHandler(;$) {
     my($scriptARGS) = @_;
+
+    # Path and name udev files
     my $fileName = "99-change-monitor.rules";
     my $filePath = "/etc/udev/rules.d";
+
     my @row;
     push @row, "ACTION==\"change\"";
     push @row, "SUBSYSTEM==\"drm\"";

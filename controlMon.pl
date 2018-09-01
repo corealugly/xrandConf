@@ -67,5 +67,5 @@ if ( $createUdevHandler ) {
 #xrandr --output eDP-1 --primary --mode 1920x1080 --pos 0x0 --rotate normal --output HDMI-3 --off --output HDMI-2 --off --output HDMI-1 --mode 1920x1080 --pos 1920x0 --rotate normal --output DP-3 --off --output DP-2 --off --output DP-1 --off
 
 my $cmd = xrandrMirror('eDP-1', true);
-# system(join(" ",@$cmd));
+system(join(" ",@$cmd));
 $log->info(join(" ",@$cmd));
