@@ -1,5 +1,6 @@
 use Log::Any qw($log);
 use Log::Any::Adapter ('Stdout');
+use Digest::MD5 qw(md5_hex);
 
 sub sendStatus($;$) {
     my($user, $message) = @_;
@@ -15,6 +16,9 @@ sub getUserDisplayList() {
     chomp $userDistplayList;
     return $userDistplayList;
 }
+
+#EXAMPLE
+# sendStatus(getUserDisplayList());
 
 sub convPortName($) {
     my($portName) = @_;
@@ -54,6 +58,7 @@ sub getEdidStruct() {
     
     foreach $edidPath (@edidList) {
         chomp $edidPath;
+        if (! -e $edidPath ) { $log->error("ERROR: edid not exists --> " .  $edidPath); }
         my @separatePath = split(/\//, $edidPath);
         my $newname = convPortName($separatePath[-2]);
         $devicePath{$newname} = $edidPath;
@@ -63,14 +68,13 @@ sub getEdidStruct() {
 
 sub getXrandrStructV2() {
     my @output = `xrandr`;
-    #my(%videoPort,@resolutionCase);
     my(%videoPorts);
     my $devicePath = getEdidStruct();
-    # print Dumper $devicePath;
     for (my $i = 0; $i < $#output; $i++) {
         my(@resolutionCase);
         if ( $output[$i] =~ /(\S*)\s(connected).*/ ) {
             my $portName = $1;
+            my %struct;
             for ($i++ ; $i < $#output; $i++) {      
                 if ( $output[$i] =~ /connected/ ) { $i--; last; }
                 my(%resolutionStruct);
@@ -87,29 +91,41 @@ sub getXrandrStructV2() {
                 $resolutionStruct{'resolution'} = shift @hz;
                 $resolutionStruct{'hz'} = \@hz;
 
-                $resolutionStruct{'edid'} = %$devicePath{convPortName($portName)};
+                # $resolutionStruct{'edid'} = %$devicePath{convPortName($portName)};
 
                 push @resolutionCase, \%resolutionStruct;
             }
-            $videoPorts{$1} =  \@resolutionCase;
+            $struct{'rStruct'} = \@resolutionCase;
+
+            # get monitor ID(edid) and get his hash
+            $struct{'edid'} = %$devicePath{convPortName($portName)};
+            $struct{'edid-md5'} = md5_hex($struct{'edid'});
+            # print Dumper \%struct;
+            $videoPorts{$1} =  \%struct;
         }
     }
-    # return \%videoPorts;
-    print Dumper \%videoPorts;
+    return \%videoPorts;
+    # print Dumper \%videoPorts;
 }
 
 #`xrandr --output eDP1 --auto --output DP3-1 --mode 1920x1080 --same-as eDP1`
 sub xrandrMirror($;$) {
     my($defaultDisplay, $sameResolution) = @_;
     my(@cmd);
-    my $videoPorts = getXrandrStruct();
+    my $videoPorts = getXrandrStructV2();
     if ($videoPorts->{$defaultDisplay}) {  
         push @cmd, "xrandr";
         push @cmd, "--output";
         push @cmd, $defaultDisplay;
-        push @cmd, "--auto";
+
+        # check open LID
+        if ( statusLid() )
+        { push @cmd, "--auto"; } 
+        else
+        { push @cmd, "--off"; }
+
         foreach my $key (keys %$videoPorts) {
-            $log->info("$key:  $videoPorts->{$key}[0]{'resolution'}");
+            $log->info("$key:  $videoPorts->{$key}{'rStruct'}[0]{'resolution'}");
             if ($key ne $defaultDisplay) {
                 push @cmd,"--output";
                 push @cmd,"$key";
@@ -117,7 +133,7 @@ sub xrandrMirror($;$) {
                 if ($sameResolution) {
                     push @cmd,getPortResolution($defaultDisplay);
                 } else { 
-                    push @cmd,"$videoPorts->{$key}[0]{'resolution'}";
+                    push @cmd,"$videoPorts->{$key}{'rStruct'}[0]{'resolution'}";
                 }
                 push @cmd,"--same-as";
                 push @cmd,"$defaultDisplay";
@@ -179,26 +195,6 @@ sub getXrandrStruct() {
     }
     return \%videoPort;
 }
-
-#EXAMPLE
-#$VAR1 = {
-#          'eDP1' => [
-#                      {
-#                        'hz' => [
-#                                  '60.02*+',
-#                                  '59.93'
-#                                ],
-#                        'resolution' => '1920x1080',
-#                        'status' => bless( do{\(my $o = 1)}, 'boolean' )
-#                      },
-#                      {
-#                        'status' => bless( do{\(my $o = 0)}, 'boolean' ),
-#                        'resolution' => '1680x1050',
-#                        'hz' => [
-#                                  '59.95',
-#                                  '59.88'
-#                                ]
-#                      },
 
 #createEventHandler ($scriptARGS)  --> no file validation exist --> control RUN EVENT
 sub createEventHandler(;$) {
@@ -269,15 +265,19 @@ sub getPixelCount($) {
 sub getPortResolution($;$) {
     my($videoPort,$resolution) = @_;
     my $max = undef;
-    my $videoPorts = getXrandrStruct();
+    my $videoPorts = getXrandrStructV2();
+    # print Dumper $videoPorts->{$videoPort}->{'rStruct'};
     if ($videoPorts->{$videoPort}) {
-        foreach my $key (@{$videoPorts->{$videoPort}}) {
+        foreach my $key (@{$videoPorts->{$videoPort}->{'rStruct'}}) {
+            if ( defined $resolution and $resolution eq $key->{"resolution"})
+            { 
+                return  $key->{"resolution"};
+            }
             #if (! $max) { $max = $key->{$resolution}; }
-            if (getPixelCount($key->{"resolution"}) > getPixelCount($max)) { 
+            if (getPixelCount($key->{'resolution'}) > getPixelCount($max)) { 
                 $max = $key->{"resolution"};
             }
-            #$log->info($max);
-            if ( defined $resolution and $resolution eq $key->{"resolution"}) { return  $key->{"resolution"}; }
+            # $log->info($max);
         }
         return $max;
     } else {

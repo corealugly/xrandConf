@@ -40,19 +40,6 @@ GetOptions(
 # HelpMessage() unless $table;
 # HelpMessage() unless $column;
 
-# {{{ INFO
-#apt-get install acpid acpi-support cpufrequtils
-#------------- acpi example
-#corealugly@corebook $ acpi_listen
-#button/lid LID open
-#button/lid LID close
-
-# }}}
-
-# my $test = getUserDisplayList();
-# print Dumper $test;
-# exit 1;
-
 if ( $lidstatus ) {
     my $status = statusLid();
     if ($status) {
@@ -74,27 +61,11 @@ if ( $createUdevHandler ) {
     createUdevHandler();
 }
 
-#system("xrandr", "--output", "HDMI1", "--off")
-
-#xrandr --output eDP1 --auto --output DP3-1 --mode 1920x1080 --same-as eDP1
-#xrandr --output eDP1 --auto --output DP3-1 --mode 1920x1080+0+0 --same-as eDP1
-#xrandr --output eDP1 --auto --output DP2-8 --mode 1920x1080 --same-as eDP1
-#xrandr --output eDP1 --auto --output DP2 --mode 1920x1080 --same-as eDP1
-#NEW
-#system("xrandr --output eDP-1 --off --output DP-3-1 --mode 1920x1080 --right-of DP-3-2 --mode 1920x1080");
-#xrandr --output eDP-1 --off && xrandr --output DP-3-1 --mode 1920x1080 --right-of DP-3-2 --mode 1920x1080
-#xrandr --output DP-3-2 --mode 1920x1080 --primary --left-of DP-3-1 --mode 1920x1080  --output eDP-1 --off
-#xrandr --output eDP-1 --off --output HDMI-3 --off --output HDMI-2 --off --output HDMI-1 --off --output DP-3-1 --mode 1920x1080 --pos 1920x0 --rotate normal --output DP-3-3 --off --output DP-3-2 --mode 1920x1080 --pos 0x0 --rotate normal --output DP-3 --off --output DP-2 --off --output DP-1 --off
-# getEdidStruct();
-#getXrandrStructV2();
-
-#exit 1 ;
-my $runningXserverList = getUserDisplayList();
-#print Dumper $runningXserverList;
-sendStatus($runningXserverList);
-# exit 1;
-
+#home
+#xrandr --output eDP-1 --off --output DP-3-1 --auto --pos 2560x0 --output DP-3-2  --primary --auto --pos 0x0
+#work
+#xrandr --output eDP-1 --primary --mode 1920x1080 --pos 0x0 --rotate normal --output HDMI-3 --off --output HDMI-2 --off --output HDMI-1 --mode 1920x1080 --pos 1920x0 --rotate normal --output DP-3 --off --output DP-2 --off --output DP-1 --off
 
 my $cmd = xrandrMirror('eDP-1', true);
-system(join(" ",@$cmd));
+# system(join(" ",@$cmd));
 $log->info(join(" ",@$cmd));

@@ -1,0 +1,23 @@
+script for control of monitor (xrandr)
+
+1. create handler udev
+1.1 call number 3 for new video interface
+2. create handler event
+2.2 control Lid, monitor off
+3. create mirror for multi monitor
+
+
+
+Notes:
+1. install acpid acpi-support 
+1.1 acpi example:
+```
+user@hostname $ acpi_listen
+button/lid LID open
+button/lid LID close
+```
+
+
+todo:
+1. remove old core
+2. fix handler event create
