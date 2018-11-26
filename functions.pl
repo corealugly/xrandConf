@@ -1,5 +1,6 @@
 use Log::Any qw($log);
 use Log::Any::Adapter ('Stdout');
+use Log::Any::Adapter ('File', '/tmp/xran.log');
 use Digest::MD5 qw(md5_hex);
 
 sub sendStatus($;$) {
@@ -67,7 +68,8 @@ sub getEdidStruct() {
 }
 
 sub getXrandrStructV2() {
-    my @output = `xrandr`;
+    my @output = `DISPLAY=:0 xrandr`;
+    # my @output = `xrandr`;
     my(%videoPorts);
     my $devicePath = getEdidStruct();
     for (my $i = 0; $i < $#output; $i++) {
@@ -113,7 +115,8 @@ sub xrandrMirror($;$) {
     my($defaultDisplay, $sameResolution) = @_;
     my(@cmd);
     my $videoPorts = getXrandrStructV2();
-    if ($videoPorts->{$defaultDisplay}) {  
+    if ($videoPorts->{$defaultDisplay}) { 
+        push @cmd, "DISAPLAY=:0"; 
         push @cmd, "xrandr";
         push @cmd, "--output";
         push @cmd, $defaultDisplay;
@@ -151,9 +154,15 @@ sub xrandrMirror($;$) {
 sub lockLid($) {
     my($triger) = @_;
     if ($triger) {
-        system("xrandr", "--output", "eDP1", "--auto");
+        my @call = ("DISPLAY=:0", "xrandr", "--output", "eDP-1", "--auto", "--pos 0x0");
+        $command = join(" ", @call);
+        $log->info("openLid --> call: $command");
+        system($command);
     } else { 
-        system("xrandr", "--output", "eDP1", "--off");
+        my @call = ("DISPLAY=:0", "xrandr", "--output", "eDP-1", "--off", "--pos 0x0");
+        $command = join(" ", @call);
+        $log->info("closeLid --> call: $command");
+        system($command);
     }
 }
 
@@ -172,7 +181,7 @@ sub statusLid() {
 #$log->info("statusLid --> $status");
 
 sub getXrandrStruct() {
-    my @output = `xrandr`;
+    my @output = `DISPLAY=:0 xrandr`;
     #my(%videoPort,@resolutionCase);
     my(%videoPort);
     for (my $i = 0; $i < $#output; $i++) {
