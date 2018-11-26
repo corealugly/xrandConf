@@ -9,4 +9,12 @@
     w -h | awk '{if (NF>8) {print $1" " $11}}'
 ###get user who run xinit
     ps -eo uname:15,cmd | awk -n  '{ if ($2 ~ "xinit") { print $1}}
-
+###get all display number
+    ps -u $(id -u) -o pid= | \
+        while read pid; do
+            cat /proc/$pid/environ 2>/dev/null | tr '\0' '\n' | grep '^DISPLAY=:'
+        done | grep -o ':[0-9]*' | sort -u
+###list session
+    ck-list-sessions
+### disable other display
+xrandr --output eDP-1 --auto --pos 0x0 --primary --output DP-3-1 --off --output DP-3-2 --off

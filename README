@@ -3,10 +3,10 @@ script for control of monitor (xrandr)
 1. create handler udev
 1.1 call number 3 for new video interface
 2. create handler event
-2.2 control Lid, monitor off
+2.1 control Lid, monitor off
 3. create mirror for multi monitor
 
-
+PS. 2.1 handler event not work on gentoo  --> fix: add into /etc/acpi/default.sh --> logger "$(su user -c '/home/corealugly/dotfiles/scripts/monitor-control/controlMon.pl --lidlock')
 
 Notes:
 1. install acpid acpi-support 
